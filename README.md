@@ -3,10 +3,15 @@
 Just screwing around with LLM apis.
 
 To use this, you'll need a local .env (make sure you don't commit it to version control!) of the format:
+
 API_KEY=zotero_api_key_unquoted
+
 LIBRARY_ID=zotero_library_id_unquoted
+
 OPENAI_API_KEY=optional_chatgpt_api_key_unquoted
+
 ANTHROPIC_API_KEY=optional_anthropic_api_key_unquoted
+
 DEEPSEEK_API_KEY=optional_deepseek_api_key_unquoted
 
 This project uses uv, the best python version and dependency manager.
