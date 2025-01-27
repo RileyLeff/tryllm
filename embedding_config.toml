@@ -1,0 +1,36 @@
+[models.minilm]
+name = "all-MiniLM-L6-v2"
+provider = "sentence-transformers"
+dimensions = 384
+max_tokens = 512
+speed_rank = 1
+memory_rank = 1
+quality_rank = 1
+description = "Fast, lightweight model"
+
+[models.mpnet]
+name = "all-mpnet-base-v2"
+provider = "sentence-transformers"
+dimensions = 768
+max_tokens = 768
+speed_rank = 2
+memory_rank = 2
+quality_rank = 2
+description = "Balanced performance"
+
+[models.bge-large]
+name = "BAAI/bge-large-en-v1.5"
+provider = "BAAI"
+dimensions = 1024
+max_tokens = 2048
+speed_rank = 3
+memory_rank = 3
+quality_rank = 3
+description = "Best quality, larger context"
+
+[chunking]
+default_chunk_size = 1000
+default_overlap = 200
+
+[storage]
+default_persist_directory = "chroma_db"

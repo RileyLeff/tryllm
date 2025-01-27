@@ -1,0 +1,23 @@
+[models.claude-3-sonnet]
+provider = "anthropic"
+model_name = "claude-3-sonnet-20240229"
+api_base = "https://api.anthropic.com/v1/messages"
+env_var = "ANTHROPIC_API_KEY"
+max_tokens = 4096
+description = "Anthropic Claude 3 Sonnet"
+
+[models.gpt-4]
+provider = "openai"
+model_name = "gpt-4"
+api_base = "https://api.openai.com/v1"
+env_var = "OPENAI_API_KEY"
+max_tokens = 8192
+description = "OpenAI GPT-4"
+
+[models.deepseek-chat]
+provider = "deepseek"
+model_name = "deepseek-chat"
+api_base = "https://api.deepseek.com/v1/chat/completions"
+env_var = "DEEPSEEK_API_KEY"
+max_tokens = 4096
+description = "DeepSeek Chat R1"

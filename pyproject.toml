@@ -1,0 +1,19 @@
+[project]
+name = "tryllm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.0,<3.13.0"
+dependencies = [
+    "anthropic>=0.44.0",
+    "chromadb>=0.6.3",
+    "openai>=1.60.0",
+    "pymupdf>=1.25.2",
+    "python-dotenv>=1.0.1",
+    "pyzotero>=1.6.6",
+    "requests>=2.32.3",
+    "semanticscholar>=0.9.0",
+    "sentence-transformers>=3.3.1",
+    "tqdm>=4.67.1",
+    "transformers>=4.48.1",
+]
