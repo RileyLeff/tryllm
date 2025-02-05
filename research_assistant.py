@@ -1,19 +1,29 @@
 from project import ZoteroEmbedder
 from llm_providers import MODEL_CONFIGS
-from typing import List
+from typing import List, Dict
 from dotenv import load_dotenv
+from dataclasses import dataclass
 
 load_dotenv()
 
+@dataclass
+class QueryConfig:
+    n_chunks: int = 5
+    max_chars_per_chunk: int = 8000
+    system_prompt: str = "You are a superstar postdoctoral researcher with expertise in academic literature."
+
+@dataclass
+class AnalysisConfig:
+    max_chars: int = 8000
+    system_prompt: str = "You are a helpful research assistant with expertise in analyzing academic papers."
+
+@dataclass
+class ComparisonConfig:
+    max_chars_per_paper: int = 4000
+    system_prompt: str = "You are a helpful research assistant with expertise in analyzing and comparing academic papers."
+
 class ResearchAssistant:
     def __init__(self, embedder: ZoteroEmbedder, model_name: str = "gpt-4"):
-        """
-        Initialize the Research Assistant
-        
-        Args:
-            embedder: Initialized ZoteroEmbedder instance
-            model_name: Name of the model to use (must be in MODEL_CONFIGS)
-        """
         self.embedder = embedder
         
         if model_name not in MODEL_CONFIGS:
@@ -23,21 +33,18 @@ class ResearchAssistant:
         self.llm = config["provider"](**config["args"])
         print(f"Using model: {config['description']}")
 
-    def query(self, question: str, n_chunks: int = 5) -> str:
-        """Query the research assistant with a question"""
-        # Get relevant chunks from the embeddings
-        results = self.embedder.search(question, n_results=n_chunks)
+    def query(self, question: str, config: QueryConfig = QueryConfig()) -> str:
+        results = self.embedder.search(question, n_results=config.n_chunks)
         
-        # Prepare context from the chunks
         context = []
         for result in results:
             context.append(
                 f"From '{result['metadata']['title']}' by {result['metadata']['authors']} ({result['metadata']['year']}):\n"
-                f"{result['chunk']}\n"
+                f"{result['chunk'][:config.max_chars_per_chunk]}\n"
             )
         
         messages = [
-            {"role": "system", "content": "You are a superstar postdoctoral researcher with expertise in academic literature."},
+            {"role": "system", "content": config.system_prompt},
             {"role": "user", "content": f"""Use relevant content from the following excerpts from academic papers to answer the question below.
 If you're not sure about something, say so, and specifically say what you would like more information about, citing particular references or sources you would like to see more from. Include citations in your response.
 
@@ -53,8 +60,7 @@ Please provide a detailed answer based on these sources, including specific cita
 
         return self.llm.generate(messages)
 
-    def analyze_paper(self, title: str) -> str:
-        """Analyze a specific paper in your database"""
+    def analyze_paper(self, title: str, config: AnalysisConfig = AnalysisConfig()) -> str:
         results = self.embedder.collection.get(
             where={"title": title}
         )
@@ -66,7 +72,7 @@ Please provide a detailed answer based on these sources, including specific cita
         metadata = results['metadatas'][0]
 
         messages = [
-            {"role": "system", "content": "You are a helpful research assistant with expertise in analyzing academic papers."},
+            {"role": "system", "content": config.system_prompt},
             {"role": "user", "content": f"""Analyze the following academic paper and provide a comprehensive summary:
 
 Title: {metadata['title']}
@@ -74,7 +80,7 @@ Authors: {metadata['authors']}
 Year: {metadata['year']}
 
 Content:
-{text[:8000]}
+{text[:config.max_chars]}
 
 Please provide:
 1. Main research questions/objectives
@@ -86,8 +92,7 @@ Please provide:
 
         return self.llm.generate(messages)
 
-    def compare_papers(self, titles: List[str]) -> str:
-        """Compare multiple papers in your database"""
+    def compare_papers(self, titles: List[str], config: ComparisonConfig = ComparisonConfig()) -> str:
         papers_data = []
         for title in titles:
             results = self.embedder.collection.get(
@@ -111,13 +116,13 @@ Authors: {paper['metadata']['authors']}
 Year: {paper['metadata']['year']}
 
 Content:
-{paper['text'][:4000]}
+{paper['text'][:config.max_chars_per_paper]}
 
 ---
 """
 
         messages = [
-            {"role": "system", "content": "You are a helpful research assistant with expertise in analyzing and comparing academic papers."},
+            {"role": "system", "content": config.system_prompt},
             {"role": "user", "content": prompt + """
 Please provide:
 1. Key similarities in methodology and findings
