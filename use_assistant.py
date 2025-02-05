@@ -26,6 +26,6 @@ model_name = "claude-sonnet"  # or "gpt-4", "deepseek-r1", etc.
 assistant = ResearchAssistant(embedder, model_name=model_name)
 
 # Ask a research question
-question = "Is there variation in the spatial arrangement of vessels within leaves?"
+question = "Are coastal forests or marshes more productive ecosystems?"
 answer = assistant.query(question)
 print(answer)

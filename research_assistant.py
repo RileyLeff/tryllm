@@ -37,9 +37,9 @@ class ResearchAssistant:
             )
         
         messages = [
-            {"role": "system", "content": "You are a helpful research assistant with expertise in academic literature."},
-            {"role": "user", "content": f"""Use the following excerpts from academic papers to answer the question below.
-If you're not sure about something, say so. Include citations in your response.
+            {"role": "system", "content": "You are a superstar postdoctoral researcher with expertise in academic literature."},
+            {"role": "user", "content": f"""Use relevant content from the following excerpts from academic papers to answer the question below.
+If you're not sure about something, say so, and specifically say what you would like more information about, citing particular references or sources you would like to see more from. Include citations in your response.
 
 Question: {question}
 

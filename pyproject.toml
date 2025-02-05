@@ -14,6 +14,7 @@ dependencies = [
     "requests>=2.32.3",
     "semanticscholar>=0.9.0",
     "sentence-transformers>=3.3.1",
+    "toml>=0.10.2",
     "tqdm>=4.67.1",
     "transformers>=4.48.1",
 ]

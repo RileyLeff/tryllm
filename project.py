@@ -10,6 +10,7 @@ import uuid
 import json
 from dotenv import load_dotenv
 import glob
+import toml
 
 # Load environment variables from .env file
 load_dotenv()
@@ -153,13 +154,24 @@ class ZoteroEmbedder:
             
         return chunks
 
-    def create_embeddings(self, chunk_size: int = 1000, overlap: int = 100, batch_size: int = 32):
+    def create_embeddings(self, chunk_size: int = 1000, overlap: int = 100, batch_size: int = 32, update_mode: str = "new_only"):
         """
-        Create embeddings for all PDFs in the Zotero library and store in ChromaDB
+        Create embeddings for PDFs in the Zotero library and store in ChromaDB
+        
+        Args:
+            chunk_size: Size of text chunks
+            overlap: Overlap between chunks
+            batch_size: Number of chunks to process at once
+            update_mode: Either "new_only" to only add new papers or "update_all" to check for changes
         """
         processed_pdfs = 0
         total_chunks = 0
         skipped_items = 0
+        
+        # Get existing Zotero keys from ChromaDB
+        existing_keys = set()
+        if self.collection.count() > 0:
+            existing_keys = {m['zotero_key'] for m in self.collection.get()['metadatas']}
         
         # Get total number of items
         total_items = self.zot.count_items()
@@ -167,24 +179,35 @@ class ZoteroEmbedder:
         limit = 100  # Zotero's maximum items per request
         
         print(f"Found {total_items} total items in Zotero library")
+        print(f"Found {len(existing_keys)} existing papers in ChromaDB")
         
         with tqdm(total=total_items) as pbar:
             while start < total_items:
-                # Get items with pagination
                 items = self.zot.items(start=start, limit=limit)
                 
                 for item in items:
                     try:
-                        # Only process items that are not attachments themselves
                         if item['data'].get('itemType') != 'attachment':
+                            zotero_key = item['key']
+                            
+                            # Skip if we already have this paper and we're only adding new ones
+                            if update_mode == "new_only" and zotero_key in existing_keys:
+                                pbar.update(1)
+                                continue
+                                
+                            # If updating all, remove existing embeddings for this paper
+                            if update_mode == "update_all" and zotero_key in existing_keys:
+                                self.collection.delete(
+                                    where={"zotero_key": zotero_key}
+                                )
+                            
                             # Get PDF content
                             text = self.get_pdf_content(item)
                             
-                            if text and len(text.strip()) > 0:  # Check for non-empty text
-                                # Split into chunks
+                            if text and len(text.strip()) > 0:
                                 chunks = self.chunk_text(text, chunk_size, overlap)
                                 
-                                if chunks:  # Only process if we have valid chunks
+                                if chunks:
                                     total_chunks += len(chunks)
                                     processed_pdfs += 1
                                     
@@ -197,20 +220,19 @@ class ZoteroEmbedder:
                                         elif 'lastName' in author:
                                             author_strings.append(author['lastName'])
                                     
-                                    # Prepare metadata with string-based authors
                                     metadata = {
                                         'title': item['data'].get('title', ''),
                                         'authors': '; '.join(author_strings),
                                         'year': item['data'].get('date', ''),
                                         'doi': item['data'].get('DOI', ''),
                                         'tags': ', '.join([tag.get('tag', '') for tag in item['data'].get('tags', [])]),
-                                        'zotero_key': item['key']
+                                        'zotero_key': zotero_key
                                     }
                                     
                                     # Process chunks in batches
                                     for i in range(0, len(chunks), batch_size):
                                         batch_chunks = chunks[i:i + batch_size]
-                                        if batch_chunks:  # Only process non-empty batches
+                                        if batch_chunks:
                                             batch_ids = [str(uuid.uuid4()) for _ in batch_chunks]
                                             batch_metadatas = [{
                                                 **metadata,
@@ -218,7 +240,6 @@ class ZoteroEmbedder:
                                                 'total_chunks': len(chunks)
                                             } for idx in range(len(batch_chunks))]
                                             
-                                            # Add batch to ChromaDB
                                             self.collection.add(
                                                 documents=batch_chunks,
                                                 ids=batch_ids,
@@ -237,11 +258,9 @@ class ZoteroEmbedder:
                 
                 start += limit
         
-        # Print summary statistics
         print("\nProcessing complete!")
         print(f"Successfully processed {processed_pdfs} PDFs")
-        print(f"Created {total_chunks} chunks across all documents")
-        print(f"Average chunks per document: {total_chunks/processed_pdfs if processed_pdfs > 0 else 0:.2f}")
+        print(f"Created {total_chunks} new chunks")
         print(f"Skipped {skipped_items} items")
         
         return {
